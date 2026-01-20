@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Extract version from tag
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF -match 'refs/tags/v(.*)') {
+          $version = $matches[1]
+        } else {
+          $version = "1.0.0"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "Version: $version"
+        
+    - name: Restore dependencies
+      run: dotnet restore LocalSoundboard/LocalSoundboard.csproj
+      
+    - name: Build
+      run: dotnet build LocalSoundboard/LocalSoundboard.csproj --configuration Release --no-restore /p:Version=${{ steps.version.outputs.VERSION }}
+      
+    - name: Publish Windows x64
+      run: dotnet publish LocalSoundboard/LocalSoundboard.csproj --configuration Release --runtime win-x64 --self-contained true --output ./publish/win-x64 /p:PublishSingleFile=true /p:Version=${{ steps.version.outputs.VERSION }}
+      
+    - name: Publish Windows x86
+      run: dotnet publish LocalSoundboard/LocalSoundboard.csproj --configuration Release --runtime win-x86 --self-contained true --output ./publish/win-x86 /p:PublishSingleFile=true /p:Version=${{ steps.version.outputs.VERSION }}
+      
+    - name: Create zip archives
+      shell: pwsh
+      run: |
+        Compress-Archive -Path ./publish/win-x64/* -DestinationPath LocalSoundboard-win-x64.zip
+        Compress-Archive -Path ./publish/win-x86/* -DestinationPath LocalSoundboard-win-x86.zip
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          LocalSoundboard-win-x64.zip
+          LocalSoundboard-win-x86.zip
+        body: |
+          ## LocalSoundboard ${{ steps.version.outputs.VERSION }}
+          
+          ### Features
+          - 9-button soundboard with individual volume controls
+          - Audio normalization support
+          - Real-time output level meter
+          - Persistent settings
+          - Supports WAV and MP3 files
+          
+          ### Downloads
+          - **LocalSoundboard-win-x64.zip**: For 64-bit Windows systems
+          - **LocalSoundboard-win-x86.zip**: For 32-bit Windows systems
+          
+          ### Installation
+          1. Download the appropriate zip file for your system
+          2. Extract the contents
+          3. Run `LocalSoundboard.exe`
+          
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
