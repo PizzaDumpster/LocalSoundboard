@@ -75,6 +75,8 @@
                 btn.Click += new System.EventHandler(this.SoundButton_Click);
                 btn.MouseDown += new System.Windows.Forms.MouseEventHandler(this.SoundButton_MouseDown);
                 this.Controls.Add(btn);
+                
+                toolTip.SetToolTip(btn, "Left-click: Play sound\nRight-click: Load audio file");
 
                 TrackBar slider = new TrackBar();
                 slider.Minimum = 0;
@@ -87,6 +89,8 @@
                 slider.ValueChanged += new System.EventHandler(this.VolumeSlider_ValueChanged);
                 slider.DoubleClick += new System.EventHandler(this.VolumeSlider_DoubleClick);
                 this.Controls.Add(slider);
+                
+                toolTip.SetToolTip(slider, "Volume Control (0-200%)\nDrag to adjust volume\nDouble-click to reset to 100%");
 
                 Label volLabel = new Label();
                 volLabel.Text = "100%";
@@ -109,12 +113,26 @@
                 
                 toolTip.SetToolTip(normBtn, "Normalize Audio\n\nAnalyzes the audio and adjusts it to 95% peak volume.\nCreates a new normalized WAV file.\nUseful for matching volume levels across clips.");
 
+                Button ejectBtn = new Button();
+                ejectBtn.Text = "✖";
+                ejectBtn.Size = new System.Drawing.Size(30, 30);
+                ejectBtn.Location = new System.Drawing.Point(xPos + buttonWidth + padding + 50, yPos + 70);
+                ejectBtn.Font = new System.Drawing.Font("Arial", 10F, System.Drawing.FontStyle.Bold);
+                ejectBtn.BackColor = System.Drawing.Color.IndianRed;
+                ejectBtn.FlatStyle = FlatStyle.Flat;
+                ejectBtn.Enabled = false;
+                ejectBtn.Click += new System.EventHandler(this.EjectButton_Click);
+                this.Controls.Add(ejectBtn);
+                
+                toolTip.SetToolTip(ejectBtn, "Eject Sound\n\nRemoves the loaded sound from this slot.\nVolume settings are preserved.");
+
                 buttonControls.Add(new ButtonControl
                 {
                     Button = btn,
                     VolumeSlider = slider,
                     VolumeLabel = volLabel,
                     NormalizeButton = normBtn,
+                    EjectButton = ejectBtn,
                     Volume = 1.0f
                 });
             }

@@ -19,6 +19,7 @@ namespace LocalSoundboard
             public TrackBar VolumeSlider { get; set; }
             public Label VolumeLabel { get; set; }
             public Button NormalizeButton { get; set; }
+            public Button EjectButton { get; set; }
             public string SoundPath { get; set; } = string.Empty;
             public float Volume { get; set; } = 1.0f;
         }
@@ -125,6 +126,7 @@ namespace LocalSoundboard
                         btn.Text = Path.GetFileNameWithoutExtension(ofd.FileName);
                         btn.BackColor = Color.LightGreen;
                         control.NormalizeButton.Enabled = true;
+                        control.EjectButton.Enabled = true;
                         SaveSettings();
                     }
                 }
@@ -228,6 +230,32 @@ namespace LocalSoundboard
             slider.Value = 50;
         }
 
+        private void EjectButton_Click(object sender, EventArgs e)
+        {
+            Button ejectBtn = (Button)sender;
+            var control = buttonControls.FirstOrDefault(bc => bc.EjectButton == ejectBtn);
+
+            if (control != null)
+            {
+                var result = MessageBox.Show(
+                    "Are you sure you want to remove this sound?",
+                    "Confirm Eject",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question
+                );
+
+                if (result == DialogResult.Yes)
+                {
+                    control.SoundPath = string.Empty;
+                    control.Button.Text = $"Sound {buttonControls.IndexOf(control) + 1}\n(Right-click\nto load)";
+                    control.Button.BackColor = Color.LightBlue;
+                    control.NormalizeButton.Enabled = false;
+                    control.EjectButton.Enabled = false;
+                    SaveSettings();
+                }
+            }
+        }
+
         private void SaveSettings()
         {
             var settings = buttonControls.Select((bc, index) => new SoundButtonData
@@ -261,6 +289,7 @@ namespace LocalSoundboard
                                 control.Button.Text = Path.GetFileNameWithoutExtension(setting.SoundFilePath);
                                 control.Button.BackColor = Color.LightGreen;
                                 control.NormalizeButton.Enabled = true;
+                                control.EjectButton.Enabled = true;
                             }
                             
                             control.VolumeSlider.Value = (int)(setting.Volume * 50);
