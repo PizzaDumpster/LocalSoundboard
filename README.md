@@ -2,6 +2,8 @@
 
 A Windows Forms desktop application that provides a 9-button soundboard for playing audio clips with individual volume controls and audio normalization.
 
+![LocalSoundboard Screenshot](LocalSoundBoard.png)
+
 ## Features
 
 - **9 Sound Buttons**: Load and play up to 9 different audio clips simultaneously
