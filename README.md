@@ -2,7 +2,7 @@
 
 A Windows Forms desktop application that provides a 9-button soundboard for playing audio clips with individual volume controls and audio normalization.
 
-![LocalSoundBoard.png](https://github.com/PizzaDumpster/LocalSoundboard/blob/main/LocalSoundboard/LocalSoundBoard.png)
+![LocalSoundBoard.png](https://github.com/PizzaDumpster/LocalSoundboard/blob/main/LocalSoundboard/LocalSoundBoard.png) ?
 
 ## Features
 
