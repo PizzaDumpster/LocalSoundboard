@@ -52,11 +52,46 @@
             outputLevelMeter.Minimum = 0;
             outputLevelMeter.Maximum = 100;
             outputLevelMeter.Value = 0;
-            outputLevelMeter.Size = new System.Drawing.Size(700, 25);
+            outputLevelMeter.Size = new System.Drawing.Size(620, 25);
             outputLevelMeter.Location = new System.Drawing.Point(startX, 30);
             outputLevelMeter.ForeColor = Color.LimeGreen;
             outputLevelMeter.Style = ProgressBarStyle.Continuous;
             this.Controls.Add(outputLevelMeter);
+
+            stopButton = new Button();
+            stopButton.Text = "STOP";
+            stopButton.Size = new System.Drawing.Size(70, 25);
+            stopButton.Location = new System.Drawing.Point(startX + 630, 30);
+            stopButton.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Bold);
+            stopButton.BackColor = System.Drawing.Color.Red;
+            stopButton.ForeColor = System.Drawing.Color.White;
+            stopButton.FlatStyle = FlatStyle.Flat;
+            stopButton.Click += new System.EventHandler(this.StopButton_Click);
+            this.Controls.Add(stopButton);
+            
+            toolTip.SetToolTip(stopButton, "Stop all currently playing sounds");
+
+            playbackTimeline = new TrackBar();
+            playbackTimeline.Minimum = 0;
+            playbackTimeline.Maximum = 1000;
+            playbackTimeline.Value = 0;
+            playbackTimeline.TickStyle = TickStyle.None;
+            playbackTimeline.Size = new System.Drawing.Size(500, 45);
+            playbackTimeline.Location = new System.Drawing.Point(startX + 130, 10);
+            playbackTimeline.Scroll += new System.EventHandler(this.PlaybackTimeline_Scroll);
+            playbackTimeline.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PlaybackTimeline_MouseDown);
+            playbackTimeline.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PlaybackTimeline_MouseUp);
+            this.Controls.Add(playbackTimeline);
+            
+            toolTip.SetToolTip(playbackTimeline, "Playback timeline - drag to seek");
+
+            timeLabel = new Label();
+            timeLabel.Text = "00:00 / 00:00";
+            timeLabel.Size = new System.Drawing.Size(100, 20);
+            timeLabel.Location = new System.Drawing.Point(startX + 640, 10);
+            timeLabel.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Bold);
+            timeLabel.TextAlign = ContentAlignment.MiddleLeft;
+            this.Controls.Add(timeLabel);
 
             for (int i = 0; i < 9; i++)
             {
@@ -72,11 +107,14 @@
                 btn.Font = new System.Drawing.Font("Arial", 9F, System.Drawing.FontStyle.Bold);
                 btn.BackColor = System.Drawing.Color.LightBlue;
                 btn.FlatStyle = FlatStyle.Flat;
+                btn.AllowDrop = true;
                 btn.Click += new System.EventHandler(this.SoundButton_Click);
                 btn.MouseDown += new System.Windows.Forms.MouseEventHandler(this.SoundButton_MouseDown);
+                btn.DragEnter += new System.Windows.Forms.DragEventHandler(this.SoundButton_DragEnter);
+                btn.DragDrop += new System.Windows.Forms.DragEventHandler(this.SoundButton_DragDrop);
                 this.Controls.Add(btn);
                 
-                toolTip.SetToolTip(btn, "Left-click: Play sound\nRight-click: Load audio file");
+                toolTip.SetToolTip(btn, "Left-click: Play sound\nRight-click: Load audio file\nDrag & drop: Load audio file");
 
                 TrackBar slider = new TrackBar();
                 slider.Minimum = 0;

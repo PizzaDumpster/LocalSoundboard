@@ -28,10 +28,15 @@ namespace LocalSoundboard
         private string settingsPath = Path.Combine(Application.StartupPath, "soundboard_settings.json");
         private ProgressBar outputLevelMeter;
         private Label outputLevelLabel;
+        private Button stopButton;
+        private TrackBar playbackTimeline;
+        private Label timeLabel;
         private System.Windows.Forms.Timer levelUpdateTimer;
         private WaveOutEvent currentOutputDevice;
         private AudioFileReader currentAudioFile;
+        private ButtonControl currentPlayingControl;
         private float currentPeakLevel = 0f;
+        private bool isSeekingTimeline = false;
         private ToolTip toolTip;
 
         public Form1()
@@ -61,6 +66,32 @@ namespace LocalSoundboard
                 outputLevelMeter.ForeColor = Color.LimeGreen;
                 
             outputLevelLabel.Text = $"Output: {levelPercent}%";
+            
+            // Update playback timeline
+            if (currentAudioFile != null && currentOutputDevice?.PlaybackState == PlaybackState.Playing && !isSeekingTimeline)
+            {
+                try
+                {
+                    double currentTime = currentAudioFile.CurrentTime.TotalSeconds;
+                    double totalTime = currentAudioFile.TotalTime.TotalSeconds;
+                    
+                    if (totalTime > 0)
+                    {
+                        playbackTimeline.Value = (int)(currentTime * 1000);
+                        playbackTimeline.Maximum = (int)(totalTime * 1000);
+                        
+                        TimeSpan current = TimeSpan.FromSeconds(currentTime);
+                        TimeSpan remaining = TimeSpan.FromSeconds(totalTime - currentTime);
+                        timeLabel.Text = $"{current:mm\\:ss} / {remaining:mm\\:ss}";
+                    }
+                }
+                catch { }
+            }
+            else if (currentOutputDevice?.PlaybackState != PlaybackState.Playing)
+            {
+                playbackTimeline.Value = 0;
+                timeLabel.Text = "00:00 / 00:00";
+            }
         }
 
         private void SoundButton_Click(object sender, EventArgs e)
@@ -70,6 +101,7 @@ namespace LocalSoundboard
             
             if (control != null && !string.IsNullOrEmpty(control.SoundPath) && File.Exists(control.SoundPath))
             {
+                currentPlayingControl = control;
                 Task.Run(() => PlaySound(control.SoundPath, control.Volume));
             }
         }
@@ -95,7 +127,7 @@ namespace LocalSoundboard
                 currentOutputDevice.Init(meterStream);
                 currentOutputDevice.Play();
                 
-                while (currentOutputDevice.PlaybackState == PlaybackState.Playing)
+                while (currentOutputDevice?.PlaybackState == PlaybackState.Playing)
                 {
                     Thread.Sleep(100);
                 }
@@ -122,15 +154,99 @@ namespace LocalSoundboard
 
                     if (ofd.ShowDialog() == DialogResult.OK)
                     {
-                        control.SoundPath = ofd.FileName;
-                        btn.Text = Path.GetFileNameWithoutExtension(ofd.FileName);
-                        btn.BackColor = Color.LightGreen;
-                        control.NormalizeButton.Enabled = true;
-                        control.EjectButton.Enabled = true;
-                        SaveSettings();
+                        LoadSoundToButton(control, btn, ofd.FileName);
                     }
                 }
             }
+        }
+
+        private void SoundButton_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0)
+                {
+                    string ext = Path.GetExtension(files[0]).ToLower();
+                    if (ext == ".wav" || ext == ".mp3")
+                    {
+                        e.Effect = DragDropEffects.Copy;
+                        return;
+                    }
+                }
+            }
+            e.Effect = DragDropEffects.None;
+        }
+
+        private void SoundButton_DragDrop(object sender, DragEventArgs e)
+        {
+            Button btn = (Button)sender;
+            var control = buttonControls.FirstOrDefault(bc => bc.Button == btn);
+            
+            if (control != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0)
+                {
+                    string filePath = files[0];
+                    string ext = Path.GetExtension(filePath).ToLower();
+                    
+                    if (ext == ".wav" || ext == ".mp3")
+                    {
+                        LoadSoundToButton(control, btn, filePath);
+                    }
+                }
+            }
+        }
+
+        private void LoadSoundToButton(ButtonControl control, Button btn, string filePath)
+        {
+            control.SoundPath = filePath;
+            btn.Text = Path.GetFileNameWithoutExtension(filePath);
+            btn.BackColor = Color.LightGreen;
+            control.NormalizeButton.Enabled = true;
+            control.EjectButton.Enabled = true;
+            SaveSettings();
+        }
+
+        private void StopButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                currentOutputDevice?.Stop();
+                currentOutputDevice?.Dispose();
+                currentAudioFile?.Dispose();
+                currentOutputDevice = null;
+                currentAudioFile = null;
+                currentPlayingControl = null;
+                currentPeakLevel = 0f;
+                playbackTimeline.Value = 0;
+                timeLabel.Text = "00:00 / 00:00";
+            }
+            catch { }
+        }
+
+        private void PlaybackTimeline_Scroll(object sender, EventArgs e)
+        {
+            if (currentAudioFile != null && currentOutputDevice?.PlaybackState == PlaybackState.Playing)
+            {
+                try
+                {
+                    double newPosition = playbackTimeline.Value / 1000.0;
+                    currentAudioFile.CurrentTime = TimeSpan.FromSeconds(newPosition);
+                }
+                catch { }
+            }
+        }
+
+        private void PlaybackTimeline_MouseDown(object sender, MouseEventArgs e)
+        {
+            isSeekingTimeline = true;
+        }
+
+        private void PlaybackTimeline_MouseUp(object sender, MouseEventArgs e)
+        {
+            isSeekingTimeline = false;
         }
 
         private void NormalizeButton_Click(object sender, EventArgs e)
@@ -220,6 +336,13 @@ namespace LocalSoundboard
             {
                 control.Volume = slider.Value / 50f;
                 control.VolumeLabel.Text = $"{slider.Value * 2}%";
+                
+                // Update volume in real-time if this control's sound is currently playing
+                if (control == currentPlayingControl && currentAudioFile != null)
+                {
+                    currentAudioFile.Volume = Math.Min(control.Volume, 2.0f);
+                }
+                
                 SaveSettings();
             }
         }
